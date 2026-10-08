@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Interaktif Smong Simeulue & Dashboard Guru</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <header class="bg-teal-800 text-white shadow-lg py-4 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-teal-700 rounded-2xl text-2xl">🌊</div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-wide">Kuis Smong Bersuara</h1>
+                    <p class="text-xs text-teal-200">Kearifan Lokal Tsunami Simeulue • Sejarah Fase E Kelas X</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="user-badge" class="hidden bg-teal-900/80 px-3 py-1.5 rounded-xl text-xs font-medium border border-teal-600">
+                    👤 <span id="display-name"></span> (<span id="display-class"></span>)
+                </div>
+                <button onclick="switchMode('teacher')" id="btn-mode-teacher" class="bg-teal-700 hover:bg-teal-600 text-teal-100 px-4 py-2 rounded-xl text-xs font-semibold transition border border-teal-600 cursor-pointer flex items-center gap-1.5 shadow-sm">
+                    🔒 Dashboard Guru
+                </button>
+                <button onclick="switchMode('student')" id="btn-mode-student" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                    📝 Mode Siswa
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl w-full mx-auto p-4 sm:p-6 my-auto flex-grow flex items-center justify-center">
+
+        <!-- Custom Notification Modal -->
+        <div id="custom-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4 border border-slate-100 animate-in fade-in zoom-in duration-200">
+                <div id="modal-icon" class="text-4xl">⚠️</div>
+                <h3 id="modal-title" class="text-lg font-bold text-slate-900">Perhatian</h3>
+                <p id="modal-message" class="text-sm text-slate-600">Pesan notifikasi...</p>
+                <button onclick="closeModal()" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer">
+                    Mengerti
+                </button>
+            </div>
+        </div>
+
+        <!-- 1. Welcome Screen (Siswa) -->
+        <div id="screen-welcome" class="w-full max-w-lg bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-slate-100">
+            <div class="text-center space-y-3 mb-6">
+                <div class="inline-block p-4 bg-teal-50 text-teal-700 rounded-3xl text-4xl shadow-inner">📚</div>
+                <h2 class="text-2xl font-bold text-slate-900">Evaluasi Pembelajaran Smong</h2>
+                <p class="text-slate-500 text-sm">Masukkan identitas Anda untuk mulai mengerjakan kuis sejarah dan mitigasi bencana kearifan lokal Simeulue.</p>
+            </div>
+            
+            <form id="form-user" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Nama Lengkap</label>
+                    <input type="text" id="input-name" required placeholder="Contoh: Cut Aja Nurlila" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 text-sm bg-slate-50/50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Kelas</label>
+                    <input type="text" id="input-class" required placeholder="Contoh: X IPA 1" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 text-sm bg-slate-50/50">
+                </div>
+                <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-lg shadow-teal-700/20 text-sm cursor-pointer mt-2">
+                    Mulai Kuis Sekarang 🚀
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. Quiz Screen -->
+        <div id="screen-quiz" class="hidden w-full max-w-3xl space-y-6">
+            <!-- Progress & Timer bar -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400 font-medium">Soal</span>
+                    <span id="current-q-num" class="font-bold text-teal-700 text-base">1</span>
+                    <span class="text-slate-400">/ 10</span>
+                </div>
+                <div class="flex items-center gap-2 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-100">
+                    <span class="w-2 h-2 rounded-full bg-teal-600 animate-pulse"></span>
+                    <span class="text-xs font-bold text-teal-800" id="timer-display">00:00</span>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-slate-100 space-y-6">
+                <div id="question-text" class="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
+                    <!-- Pertanyaan dimuat via JS -->
+                </div>
+                <div id="options-container" class="space-y-3">
+                    <!-- Opsi dimuat via JS -->
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between items-center">
+                <button id="btn-prev" onclick="prevQuestion()" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+                    ← Sebelumnya
+                </button>
+                <button id="btn-next" onclick="nextQuestion()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition shadow-md shadow-teal-700/20 cursor-pointer">
+                    Selanjutnya →
+                </button>
+            </div>
+
+            <!-- Question Palette -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Navigasi Nomor Soal</p>
+                <div id="palette-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                    <!-- Generated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Result Screen -->
+        <div id="screen-result" class="hidden w-full max-w-lg bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-slate-100 text-center space-y-6">
+            <div class="inline-flex p-4 bg-teal-50 text-teal-700 rounded-3xl text-4xl shadow-inner mb-2">🏆</div>
+            <h2 class="text-2xl font-bold text-slate-900">Hasil Evaluasi Smong</h2>
+            <p class="text-slate-600 text-sm">Kerja bagus, <span id="res-name" class="font-bold text-slate-900"></span> (<span id="res-class"></span>)! Skor Anda telah disinkronkan ke cloud secara real-time.</p>
+            
+            <div class="bg-teal-50/60 border border-teal-100 rounded-2xl p-6 max-w-xs mx-auto">
+                <p class="text-xs font-bold text-teal-700 uppercase tracking-wider mb-1">Skor Akhir</p>
+                <div class="text-5xl font-extrabold text-teal-800" id="res-score">100</div>
+                <p class="text-xs text-slate-500 mt-2">Dari maksimal 100 poin</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <button onclick="reviewAnswers()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-3 rounded-xl transition text-sm cursor-pointer">
+                    🔍 Lihat Pembahasan
+                </button>
+                <button onclick="restartQuiz()" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold px-5 py-3 rounded-xl transition text-sm shadow-md shadow-teal-700/20 cursor-pointer">
+                    🔄 Ulangi Kuis
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. Review Screen -->
+        <div id="screen-review" class="hidden w-full max-w-3xl space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Pembahasan Soal</h2>
+                    <p class="text-xs text-slate-500">Tinjau kembali jawaban dan rasional lengkap.</p>
+                </div>
+                <button onclick="backToResult()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer">
+                    ← Kembali ke Hasil
+                </button>
+            </div>
+            <div id="review-list" class="space-y-4">
+                <!-- Review items loaded via JS -->
+            </div>
+        </div>
+
+        <!-- 5. Teacher Dashboard Screen -->
+        <div id="screen-dashboard" class="hidden w-full max-w-5xl space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Panel Guru Terproteksi</span>
+                    <h2 class="text-xl font-bold text-slate-900 mt-2">Rekap Nilai Siswa Real-Time (Cloud Sync)</h2>
+                    <p class="text-xs text-slate-500">Data tersinkronisasi otomatis lintas perangkat tanpa risiko hilang.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportReport('excel')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        📊 Unduh Excel (CSV)
+                    </button>
+                    <button onclick="exportReport('word')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        📄 Unduh Word (.doc)
+                    </button>
+                    <button onclick="exportReport('pdf')" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        🖨️ Cetak / PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="p-3 bg-teal-50 text-teal-700 rounded-2xl text-2xl">👥</div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Siswa Mengerjakan</p>
+                        <h3 id="stat-total" class="text-2xl font-extrabold text-slate-900">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 text-blue-700 rounded-2xl text-2xl">📊</div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rata-Rata Nilai Kelas</p>
+                        <h3 id="stat-average" class="text-2xl font-extrabold text-slate-900">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="p-3 bg-amber-50 text-amber-700 rounded-2xl text-2xl">⭐</div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nilai Tertinggi</p>
+                        <h3 id="stat-highest" class="text-2xl font-extrabold text-slate-900">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Table Section -->
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden" id="printable-area">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h3 class="font-bold text-slate-900 text-base">Daftar Nilai Siswa</h3>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="filter-search" oninput="renderDashboardTable()" placeholder="Cari nama atau kelas..." class="w-full sm:w-64 px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-teal-600 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                                <th class="p-4">No</th>
+                                <th class="p-4">Nama Siswa</th>
+                                <th class="p-4">Kelas</th>
+                                <th class="p-4">Skor</th>
+                                <th class="p-4">Waktu Pengerjaan</th>
+                                <th class="p-4">Tanggal / Waktu Kirim</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-table-body" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Data loaded via Firestore onSnapshot -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center py-4 text-xs text-slate-400 bg-white border-t border-slate-100 mt-8">
+        Kearifan Lokal Smong Simeulue • Sistem Evaluasi Real-Time Cloud Terintegrasi
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'smong-quiz-default-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let firestoreUser = null;
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                firestoreUser = auth.currentUser;
+                setupRealtimeListener();
+            } catch (err) {
+                console.error("Auth error:", err);
+                // Fallback anonymous sign-in if custom token fails
+                try {
+                    await signInAnonymously(auth);
+                    firestoreUser = auth.currentUser;
+                    setupRealtimeListener();
+                } catch(e) {
+                    console.error("Fallback auth error:", e);
+                }
+            }
+        }
+
+        // Quiz Data
+        const questions = [
+            {
+                id: 1,
+                question: "Berdasarkan wacana di atas, apa peran utama tradisi lisan dalam historiografi lokal Simeulue?",
+                options: [
+                    "Sebagai hiburan semata di waktu senggang masyarakat pesisir.",
+                    "Sebagai media perekam memori kolektif dan fakta sejarah masa lalu tanpa tulisan.",
+                    "Sebagai alat politik untuk menakut-nakuti generasi muda.",
+                    "Aspek pengganti hukum adat dalam penyelesaian konflik warga.",
+                    "Sebagai bahan dagangan budaya bagi wisatawan."
+                ],
+                correct: 1,
+                rationale: "Tradisi lisan menyimpan memori kolektif dan fakta bencana historis ketika media tertulis belum tersedia."
+            },
+            {
+                id: 2,
+                question: "Pernyataan yang paling tepat mengenai tradisi lisan sebagai sumber sejarah adalah...",
+                options: [
+                    "Tidak sah karena tidak tertulis di atas kertas.",
+                    "Hanya berguna sebagai dongeng pengantar tidur.",
+                    "Sah sebagai sumber sejarah lokal bila dikaji dan divalidasi secara kritis.",
+                    "Selalu lebih akurat daripada dokumen tertulis.",
+                    "Hanya dapat dipakai untuk sejarah kerajaan besar."
+                ],
+                correct: 2,
+                rationale: "Dalam metodologi sejarah, tradisi lisan (oral history) adalah sumber yang sah, terutama untuk sejarah lokal, selama diuji secara kritis."
+            },
+            {
+                id: 3,
+                question: "Istilah 'Smong' berasal dari bahasa Devayan dan berarti...",
+                options: [
+                    "Gempa bumi yang menghancurkan rumah warga.",
+                    "Angin badai dari arah barat.",
+                    "Gunung api yang meletus di tengah laut.",
+                    "Hempasan gelombang air laut raksasa setelah gempa bumi.",
+                    "Upacara adat untuk menolak bala."
+                ],
+                correct: 3,
+                rationale: "Smong adalah istilah lokal untuk tsunami, yaitu hempasan gelombang air laut raksasa setelah gempa."
+            },
+            {
+                id: 4,
+                question: "Urutan tanda dan tindakan yang benar menurut kearifan Smong adalah...",
+                options: [
+                    "Laut surut, gempa kuat, mencari ikan di pantai.",
+                    "Gempa kuat, laut surut, berteriak 'Smong!' lalu lari ke bukit.",
+                    "Gempa kuat, berdiam di rumah, menunggu bantuan.",
+                    "Hujan lebat, laut surut, berlari ke pantai.",
+                    "Laut surut, berkumpul di pantai, berdoa bersama."
+                ],
+                correct: 1,
+                rationale: "Urutannya adalah gempa kuat (Linon), laut surut (Surak), berteriak 'Smong!', lalu lari ke tempat tinggi."
+            },
+            {
+                id: 5,
+                question: "Mengapa korban jiwa di Simeulue pada Tsunami 2004 sangat sedikit dibandingkan daerah lain di Aceh?",
+                options: [
+                    "Tsunami tidak mencapai pantai Simeulue.",
+                    "Gelombang di Simeulue jauh lebih kecil.",
+                    "Warga sudah memiliki sistem sirene modern.",
+                    "Pulau Simeulue seluruhnya berupa dataran tinggi.",
+                    "Warga mengenali tanda alam berkat pengetahuan Smong dan segera menyelamatkan diri."
+                ],
+                correct: 4,
+                rationale: "Warga mengingat pesan Smong, sehingga begitu gempa kuat dan laut surut mereka langsung berlari ke tempat tinggi."
+            },
+            {
+                id: 6,
+                question: "Manfaat utama mempelajari sejarah bencana bagi kehidupan masyarakat adalah...",
+                options: [
+                    "Mengetahui pola kejadian dan cara menyelamatkan diri agar kesalahan masa lalu tidak terulang.",
+                    "Menghafal tanggal dan nama tokoh sebanyak mungkin.",
+                    "Menyalahkan generasi terdahulu atas bencana.",
+                    "Menghindari pembicaraan tentang peristiwa menyedihkan.",
+                    "Menambah daftar peristiwa untuk ujian saja."
+                ],
+                correct: 0,
+                rationale: "Sejarah bencana memberi pelajaran dari pengalaman masa lalu sehingga masyarakat lebih siap dan tidak mengulang korban yang sama."
+            },
+            {
+                id: 7,
+                question: "Hubungan antara wacana di atas dengan fungsi sejarah dalam mitigasi bencana adalah...",
+                options: [
+                    "Sejarah hanya penting bagi sejarawan profesional.",
+                    "Sejarah membuat masyarakat takut pada laut.",
+                    "Sejarah yang diwariskan antargenerasi dapat menjadi pedoman bertindak saat bencana serupa terjadi.",
+                    "Sejarah tidak berhubungan dengan keselamatan manusia.",
+                    "Sejarah hanya bermanfaat jika sudah dibukukan."
+                ],
+                correct: 2,
+                rationale: "Pengalaman masa lalu yang diwariskan menjadi pedoman tindakan, sehingga generasi berikutnya tahu apa yang harus dilakukan."
+            },
+            {
+                id: 8,
+                question: "Sikap yang mencerminkan kesadaran historis dalam mitigasi bencana adalah...",
+                options: [
+                    "Menganggap bencana besar tidak akan terulang.",
+                    "Mengabaikan cerita orang tua karena dianggap kuno.",
+                    "Menunggu perintah resmi tanpa memperhatikan tanda alam.",
+                    "Memahami riwayat bencana di daerahnya dan bersiap menghadapi kemungkinan terulang.",
+                    "Pindah ke daerah lain tanpa mempelajari penyebabnya."
+                ],
+                correct: 3,
+                rationale: "Kesadaran historis berarti memahami bahwa daerah kita pernah dan dapat kembali terdampak, lalu mempersiapkan diri."
+            },
+            {
+                id: 9,
+                question: "Cara terbaik generasi muda melestarikan manfaat sejarah dan kearifan lokal untuk mitigasi bencana adalah...",
+                options: [
+                    "Menyimpannya sebagai rahasia keluarga.",
+                    "Mempelajari, menceritakan kembali, dan mempraktikkan langkah evakuasi bersama keluarga dan masyarakat.",
+                    "Menunggu pemerintah yang mengajarkannya.",
+                    "Menggantinya sepenuhnya dengan teknologi modern.",
+                    "Mengabaikannya bila belum pernah mengalami bencana."
+                ],
+                correct: 1,
+                rationale: "Pengetahuan baru bermanfaat bila dipelajari, diceritakan ulang, dan dipraktikkan agar tetap hidup."
+            },
+            {
+                id: 10,
+                question: "Pelajaran terpenting dari Smong bagi strategi mitigasi bencana masa kini adalah...",
+                options: [
+                    "Kearifan lokal tidak diperlukan jika ada teknologi.",
+                    "Teknologi peringatan dini tidak lagi dibutuhkan.",
+                    "Hanya wilayah Simeulue yang perlu belajar dari Smong.",
+                    "Mitigasi cukup dilakukan oleh pemerintah saja.",
+                    "Kearifan lokal berbasis sejarah dan teknologi modern dapat saling melengkapi."
+                ],
+                correct: 4,
+                rationale: "Pengetahuan lokal membuat respons cepat, sedangkan teknologi memperkuat peringatan. Keduanya saling melengkapi."
+            }
+        ];
+
+        let currentUser = { name: "", class: "" };
+        let currentIndex = 0;
+        let userAnswers = new Array(questions.length).fill(null);
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let allStudentScores = [];
+
+        // DOM elements
+        const formUser = document.getElementById('form-user');
+        const screenWelcome = document.getElementById('screen-welcome');
+        const screenQuiz = document.getElementById('screen-quiz');
+        const screenResult = document.getElementById('screen-result');
+        const screenReview = document.getElementById('screen-review');
+        const screenDashboard = document.getElementById('screen-dashboard');
+        const userBadge = document.getElementById('user-badge');
+
+        // Custom Modal helper
+        window.showModal = function(title, message, icon = "⚠️") {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        // Mode Switching
+        window.switchMode = function(mode) {
+            screenWelcome.classList.add('hidden');
+            screenQuiz.classList.add('hidden');
+            screenResult.classList.add('hidden');
+            screenReview.classList.add('hidden');
+            screenDashboard.classList.add('hidden');
+
+            document.getElementById('btn-mode-teacher').classList.remove('hidden');
+            document.getElementById('btn-mode-student').classList.add('hidden');
+
+            if(mode === 'teacher') {
+                document.getElementById('btn-mode-teacher').classList.add('hidden');
+                document.getElementById('btn-mode-student').classList.remove('hidden');
+                screenDashboard.classList.remove('hidden');
+                renderDashboardTable();
+            } else {
+                if(currentUser.name) {
+                    screenQuiz.classList.remove('hidden');
+                } else {
+                    screenWelcome.classList.remove('hidden');
+                }
+            }
+        }
+
+        formUser.addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentUser.name = document.getElementById('input-name').value.trim();
+            currentUser.class = document.getElementById('input-class').value.trim();
+            
+            if(!currentUser.name || !currentUser.class) {
+                showModal("Data Belum Lengkap", "Harap isi nama dan kelas Anda terlebih dahulu.");
+                return;
+            }
+
+            document.getElementById('display-name').innerText = currentUser.name;
+            document.getElementById('display-class').innerText = currentUser.class;
+            userBadge.classList.remove('hidden');
+
+            screenWelcome.classList.add('hidden');
+            screenQuiz.classList.remove('hidden');
+
+            startTimer();
+            loadQuestion();
+            buildPalette();
+        });
+
+        function startTimer() {
+            secondsElapsed = 0;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                let m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                let s = (secondsElapsed % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const q = questions[currentIndex];
+            document.getElementById('current-q-num').innerText = currentIndex + 1;
+            document.getElementById('question-text').innerText = q.question;
+
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+
+            q.options.forEach((optText, idx) => {
+                const isSelected = userAnswers[currentIndex] === idx;
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-4 rounded-2xl border transition text-sm flex items-start gap-3 cursor-pointer ${
+                    isSelected 
+                        ? 'border-teal-700 bg-teal-50/80 text-teal-900 font-semibold shadow-xs' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                }`;
+                btn.innerHTML = `
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border ${
+                        isSelected ? 'bg-teal-700 text-white border-teal-700' : 'border-slate-300 text-slate-500'
+                    }">${String.fromCharCode(65 + idx)}</span>
+                    <span class="mt-0.5">${optText}</span>
+                `;
+                btn.onclick = () => selectOption(idx);
+                optsContainer.appendChild(btn);
+            });
+
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            const nextBtn = document.getElementById('btn-next');
+            if(currentIndex === questions.length - 1) {
+                nextBtn.innerText = "Selesaikan Kuis ✓";
+                nextBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition shadow-md shadow-emerald-600/20 cursor-pointer";
+            } else {
+                nextBtn.innerText = "Selanjutnya →";
+                nextBtn.className = "bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition shadow-md shadow-teal-700/20 cursor-pointer";
+            }
+
+            updatePalette();
+        }
+
+        window.selectOption = function(optIndex) {
+            userAnswers[currentIndex] = optIndex;
+            loadQuestion();
+        }
+
+        window.nextQuestion = function() {
+            if(currentIndex < questions.length - 1) {
+                currentIndex++;
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        window.prevQuestion = function() {
+            if(currentIndex > 0) {
+                currentIndex--;
+                loadQuestion();
+            }
+        }
+
+        function buildPalette() {
+            const grid = document.getElementById('palette-grid');
+            grid.innerHTML = '';
+            questions.forEach((_, idx) => {
+                const btn = document.createElement('button');
+                btn.id = `palette-${idx}`;
+                btn.className = `h-10 rounded-xl font-bold text-xs transition border cursor-pointer`;
+                btn.innerText = idx + 1;
+                btn.onclick = () => {
+                    currentIndex = idx;
+                    loadQuestion();
+                };
+                grid.appendChild(btn);
+            });
+            updatePalette();
+        }
+
+        function updatePalette() {
+            questions.forEach((_, idx) => {
+                const btn = document.getElementById(`palette-${idx}`);
+                if(!btn) return;
+                const isAnswered = userAnswers[idx] !== null;
+                const isCurrent = currentIndex === idx;
+
+                if(isCurrent) {
+                    btn.className = "h-10 rounded-xl font-bold text-xs transition border-2 border-teal-800 bg-teal-50 text-teal-900 shadow-xs";
+                } else if(isAnswered) {
+                    btn.className = "h-10 rounded-xl font-bold text-xs transition bg-teal-700 text-white border-teal-700";
+                } else {
+                    btn.className = "h-10 rounded-xl font-bold text-xs transition bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200";
+                }
+            });
+        }
+
+        async function finishQuiz() {
+            clearInterval(timerInterval);
+            screenQuiz.classList.add('hidden');
+            screenResult.classList.remove('hidden');
+
+            document.getElementById('res-name').innerText = currentUser.name;
+            document.getElementById('res-class').innerText = currentUser.class;
+
+            let score = 0;
+            userAnswers.forEach((ans, idx) => {
+                if(ans === questions[idx].correct) {
+                    score += 10;
+                }
+            });
+
+            document.getElementById('res-score').innerText = score;
+
+            let m = Math.floor(secondsElapsed / 60);
+            let s = secondsElapsed % 60;
+            let timeStr = m > 0 ? `${m}m ${s}d` : `${s} detik`;
+
+            // Save result to Firestore
+            if (firestoreUser) {
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'smong_scores'), {
+                        name: currentUser.name,
+                        className: currentUser.class,
+                        score: score,
+                        timeSpent: timeStr,
+                        submittedAt: new Date().toISOString()
+                    });
+                } catch(e) {
+                    console.error("Error saving score:", e);
+                }
+            }
+        }
+
+        window.reviewAnswers = function() {
+            screenResult.classList.add('hidden');
+            screenReview.classList.remove('hidden');
+
+            const listContainer = document.getElementById('review-list');
+            listContainer.innerHTML = '';
+
+            questions.forEach((q, idx) => {
+                const userAns = userAnswers[idx];
+                const isCorrect = userAns === q.correct;
+                
+                const card = document.createElement('div');
+                card.className = `p-6 rounded-3xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'} space-y-3`;
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, optIdx) => {
+                    let badgeClass = "border-slate-200 text-slate-700 bg-white";
+                    let labelTag = "";
+                    if(optIdx === q.correct) {
+                        badgeClass = "bg-emerald-600 text-white border-emerald-600 font-semibold";
+                        labelTag = " (Kunci Jawaban)";
+                    } else if(optIdx === userAns && !isCorrect) {
+                        badgeClass = "bg-rose-600 text-white border-rose-600 font-semibold";
+                        labelTag = " (Pilihan Anda)";
+                    } else if(optIdx === userAns && isCorrect) {
+                        labelTag = " (Pilihan Anda - Benar)";
+                    }
+
+                    optionsHtml += `
+                        <div class="p-3 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 ${badgeClass}">
+                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span>
+                            <span>${opt}${labelTag}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold uppercase tracking-wider ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}">
+                            Soal ${idx + 1} • ${isCorrect ? 'Benar (+10)' : 'Salah (0)'}
+                        </span>
+                    </div>
+                    <p class="font-bold text-slate-900 text-sm sm:text-base">${q.question}</p>
+                    <div class="space-y-2 mt-2">${optionsHtml}</div>
+                    <div class="mt-4 p-4 rounded-2xl bg-white border border-slate-200/80 text-xs sm:text-sm text-slate-700 shadow-xs">
+                        <strong class="text-slate-900">Pembahasan:</strong> ${q.rationale}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        window.backToResult = function() {
+            screenReview.classList.add('hidden');
+            screenResult.classList.remove('hidden');
+        }
+
+        window.restartQuiz = function() {
+            currentIndex = 0;
+            userAnswers = new Array(questions.length).fill(null);
+            screenResult.classList.add('hidden');
+            screenWelcome.classList.remove('hidden');
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-class').value = '';
+            userBadge.classList.add('hidden');
+        }
+
+        // Setup Firestore Realtime Listener
+        function setupRealtimeListener() {
+            if (!firestoreUser) return;
+            const qRef = query(collection(db, 'artifacts', appId, 'public', 'data', 'smong_scores'));
+            onSnapshot(qRef, (snapshot) => {
+                allStudentScores = [];
+                snapshot.forEach((doc) => {
+                    allStudentScores.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort by submission date descending
+                allStudentScores.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+                updateDashboardStats();
+                if(!screenDashboard.classList.contains('hidden')) {
+                    renderDashboardTable();
+                }
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+            });
+        }
+
+        function updateDashboardStats() {
+            const total = allStudentScores.length;
+            document.getElementById('stat-total').innerText = total;
+
+            if (total === 0) {
+                document.getElementById('stat-average').innerText = "0";
+                document.getElementById('stat-highest').innerText = "0";
+                return;
+            }
+
+            let sum = 0;
+            let highest = 0;
+            allStudentScores.forEach(item => {
+                sum += item.score;
+                if (item.score > highest) highest = item.score;
+            });
+
+            document.getElementById('stat-average').innerText = (sum / total).toFixed(1);
+            document.getElementById('stat-highest').innerText = highest;
+        }
+
+        function renderDashboardTable() {
+            const tbody = document.getElementById('dashboard-table-body');
+            const searchVal = document.getElementById('filter-search').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            const filtered = allStudentScores.filter(item => 
+                item.name.toLowerCase().includes(searchVal) || 
+                item.className.toLowerCase().includes(searchVal)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Belum ada data siswa yang masuk.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach((item, index) => {
+                let dateStr = "-";
+                if(item.submittedAt) {
+                    const d = new Date(item.submittedAt);
+                    dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-semibold text-slate-400">${index + 1}</td>
+                    <td class="p-4 font-bold text-slate-900">${item.name}</td>
+                    <td class="p-4">${item.className}</td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.score >= 75 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${item.score} Poin
+                        </span>
+                    </td>
+                    <td class="p-4 text-slate-500">${item.timeSpent || '-'}</td>
+                    <td class="p-4 text-slate-500">${dateStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Export Reports
+        window.exportReport = function(type) {
+            if (allStudentScores.length === 0) {
+                showModal("Data Kosong", "Belum ada data nilai untuk diekspor.");
+                return;
+            }
+
+            if (type === 'excel') {
+                // CSV Export for Excel
+                let csvContent = "No,Nama Siswa,Kelas,Skor,Waktu Pengerjaan,Tanggal Kirim\n";
+                allStudentScores.forEach((item, idx) => {
+                    csvContent += `${idx + 1},"${item.name}","${item.className}",${item.score},"${item.timeSpent || ''}","${item.submittedAt || ''}"\n`;
+                });
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Rekap_Nilai_Smong_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+            } else if (type === 'word') {
+                // Word HTML Blob Export
+                let htmlContent = `
+                    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                    <head><meta charset='utf-8'><title>Rekap Nilai Siswa</title></head>
+                    <body>
+                        <h2>Rekap Nilai Siswa - Kearifan Lokal Smong Simeulue</h2>
+                        <table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:12px;">
+                            <tr style="background:#0f766e;color:white;">
+                                <th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Skor</th><th>Waktu Pengerjaan</th><th>Tanggal Kirim</th>
+                            </tr>
+                `;
+                allStudentScores.forEach((item, idx) => {
+                    htmlContent += `<tr>
+                        <td>${idx + 1}</td>
+                        <td>${item.name}</td>
+                        <td>${item.className}</td>
+                        <td>${item.score}</td>
+                        <td>${item.timeSpent || '-'}</td>
+                        <td>${item.submittedAt || '-'}</td>
+                    </tr>`;
+                });
+                htmlContent += `</table></body></html>`;
+                const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Rekap_Nilai_Smong_${new Date().toISOString().slice(0,10)}.doc`;
+                a.click();
+            } else if (type === 'pdf') {
+                window.print();
+            }
+        }
+
+        // Initialize Authentication on load
+        window.onload = function() {
+            initAuth();
+        }
+    </script>
+</body>
+</html>
